@@ -10,7 +10,7 @@ import createBrowserHistory from 'history/createBrowserHistory';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Create from './pages/Create'
-const customHist = createBrowserHistory();
+import customHist from './helpers/history'
 
 const Main = () => {
   return (

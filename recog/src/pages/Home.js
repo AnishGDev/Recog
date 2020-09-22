@@ -1,9 +1,14 @@
-import { AppBar, Toolbar, IconButton, Box, isWidthUp, Grid, Card, CardActionArea, CardMedia, CardContent, Button, withStyles, Typography } from '@material-ui/core';
+import { AppBar, Fab, Toolbar, IconButton, Box, isWidthUp, Grid, Card, CardActionArea, CardMedia, CardContent, Button, withStyles, Typography } from '@material-ui/core';
+import AddIcon from '@material-ui/icons/Add';
 import PropTypes from "prop-types";
 import CardActions from "@material-ui/core/CardActions"
 import React, {Component} from 'react'
 import {signOut} from '../helpers/auth'
+import firebase from 'firebase'; 
+import {Redirect} from 'react-router-dom'
+import customHist from '../helpers/history'
 const userId = ""; 
+
 
 const styles = 
 {
@@ -11,6 +16,14 @@ const styles =
         paddingRight:"1%",
         position:"relative",
         float:'right',
+    },
+    fab: {
+        margin:0,
+        top:'auto',
+        position:"fixed",
+        right:20,
+        bottom:20,
+        left:"auto",
     },
     card: {
         maxWidth: 345,
@@ -26,25 +39,44 @@ class Home extends Component {
     constructor(props) {
         super(props);
         this.handleLogOut = this.handleLogOut.bind(this);
-        const allPhotos = [
-            {
-             id: 'Notebook 1',
-             url: 'https://i.imgur.com/C3UesQX.jpg'
-            },
-            {
-             id: 'randomstringimadeup43523526534565',
-             url: 'http://fillmurray.com/200/200'
-            },
-            {
-             id: 'randomstringimadeup433245234534',
-             url: 'http://fillmurray.com/200/200'
-            }                  
-           ]
+        this.getInitialNotes = this.getInitialNotes.bind(this);
+        const Notes = []
         this.state = {
-            allPhotos
+            Notes
         };
     }
     
+    componentDidMount() {
+        this.getInitialNotes(); 
+    }
+
+    getInitialNotes() {
+        firebase.auth().onAuthStateChanged(user=> {
+            let uid = user.uid;
+
+            if (user) {
+                firebase.firestore().collection(`notes-${uid}`).onSnapshot(snapshot => {
+                    let allNotes = [];
+                    snapshot.forEach(doc => {
+                        var currNote = doc.data();
+                        currNote.id = doc.id;
+                        currNote.url = `https://i1.wp.com/itsfoss.com/wp-content/uploads/2015/03/desktop-wallpaper-ubuntu-vivid.jpg?ssl=1`
+                        allNotes.push(currNote); 
+                    })
+                    // sort alphabetically. 
+                    allNotes.sort((a, b)=> {
+                        if (a.title)
+                            return a.title.localeCompare(b.title);
+                    })
+                    console.log ("Printing all the notes here"); 
+                    console.log(allNotes);
+                    
+                    this.setState({Notes: allNotes});
+                })
+            }
+        })
+    }
+
     handleLogOut() {
         signOut()
         .then(() => {
@@ -54,9 +86,13 @@ class Home extends Component {
         })
     }
 
+    addNote() {
+        return customHist.push("/create");
+    }
+
     render() {
         const { classes } = this.props;
-        const allImages = this.state.allPhotos.map(photo => {
+        const allImages = this.state.Notes.map(photo => {
             return(
             <div style={{marginTop:20, padding:30}}>
             <Grid item key={photo.id}>
@@ -70,9 +106,9 @@ class Home extends Component {
                     className={classes.media}/>
                             <CardContent>
                                 <Typography gutterBottom variant="h5" component="h2">
-                                    {photo.id}
+                                    {photo.title}
                                 </Typography>
-                                <Typography component="p">Testing 1 2 3 4</Typography>
+                                <Typography component="p">{photo.id}</Typography>
                             </CardContent>
                     </CardActionArea>
                     <CardActions>
@@ -89,24 +125,27 @@ class Home extends Component {
         )})
         return (
             <React.Fragment>
- <AppBar position="sticky">
-  <Toolbar>
-      <Grid>
-    <Typography variant="h6" className={classes.title}>
-      Scanned Notes
-    </Typography>
-    </Grid>
-    <Grid item xs>
-        <div className={classes.logoutButton}>
-            <Button className={classes.logoutButton} color="inherit" onClick={this.handleLogOut}>LOGOUT</Button>
-        </div>
-    </Grid>
-  </Toolbar>
-</AppBar>
-            <Grid container spacing={40} justify="center">
-                {allImages}
-            </Grid>
-            </React.Fragment>
+                <AppBar position="sticky">
+                <Toolbar>
+                    <Grid>
+                    <Typography variant="h6" className={classes.title}>
+                    Scanned Notes
+                    </Typography>
+                    </Grid>
+                    <Grid item xs>
+                        <div className={classes.logoutButton}>
+                            <Button className={classes.logoutButton} color="inherit" onClick={this.handleLogOut}>LOGOUT</Button>
+                        </div>
+                    </Grid>
+                </Toolbar>
+                </AppBar>
+                <Grid container spacing={40} justify="center">
+                    {allImages}
+                </Grid>
+                <Fab onClick={this.addNote} className={classes.fab} color="primary" aria-label="add">
+                    <AddIcon />
+                </Fab>
+        </React.Fragment>
         )
     }
 }
