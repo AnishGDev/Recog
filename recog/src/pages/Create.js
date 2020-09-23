@@ -1,10 +1,11 @@
 import { withStyles, Button, TextField } from '@material-ui/core';
 import PropTypes from "prop-types";
-import React, {Component, useState} from 'react';
+import React, {Component, useState, useEffect} from 'react';
 import {VISION_API} from '../config/constants'
 import MDEditor from '@uiw/react-md-editor';
 import firebase from 'firebase'
 import customHist from '../helpers/history'
+import {firebaseAuth} from '../config/constants'
 const styles = 
 {
     card: {
@@ -18,8 +19,7 @@ const styles =
   };
 
 function Editor(props) {
-    const [value, setValue] = useState("**Hello world!!!**");
-    const [title, setTitle] = useState("");
+    const [value, setValue] = useState(props.text);
     const minHeight = 900; 
     const style = {
         paddingTop:"1%",
@@ -28,24 +28,13 @@ function Editor(props) {
         float:'left',
     }
     const textFieldStyle = {
-        paddingTop:"0.3%",
+        paddingTop:"0.4%",
         paddingBottom:"0.3%",
         paddingLeft:"0.1%",
         position:"relative",
     }
     return (
         <React.Fragment>
-    <div style={textFieldStyle}>
-    <TextField
-    error={false}
-    id="outlined-secondary"
-    label="Title"
-    variant="outlined"
-    color="secondary"
-    value={title}
-    onChange={(e) => {setTitle(e.target.value)}}
-  />
-    </div>
       <div className="container">
         <MDEditor
           value={props.text}
@@ -55,8 +44,11 @@ function Editor(props) {
           height={window.innerHeight/2}
         />
       </div>
-    <div style={style} >
-    <Button onClick={() => {props.saveNote(title,value)}} variant="contained" size="large" color="primary">Save</Button>
+    <div style={style}>
+        <Button onClick={() => {props.queryDB(value)}} variant="contained" size="large" color="primary">Save</Button>
+    </div>
+    <div style={style}>
+        <Button onClick={()=>{props.handleUpload(value)}} variant="contained" size="large" color="primary">Upload Scanned Image</Button>
     </div>
     </React.Fragment>
     );
@@ -65,8 +57,19 @@ function Editor(props) {
 class Create extends Component {
     constructor(props) {
         super(props);
+        this.queryDB = this.queryDB.bind(this);
         this.processImage = this.processImage.bind(this); 
-        this.state = {text: ""};
+        this.getNote = this.getNote.bind(this);
+        this.saveNote = this.saveNote.bind(this);
+        this.updateNote = this.updateNote.bind(this);
+        this.handleChange = this.handleChange.bind(this);
+        this.handleUpload = this.handleUpload.bind(this);
+        console.log(this.props.location.state.noteId.id);
+        this.state = {
+            text: "",
+            noteId: this.props.location.state.noteId.id,
+            title: ""
+        };
     }
     
     timeoutPromise(ms, promise) {
@@ -87,6 +90,60 @@ class Create extends Component {
         })
     }
 
+    componentDidMount() {
+        if (this.state.noteId !== "") {
+            this.getNote(this.state.noteId); 
+        }
+    }
+    async getNote(noteId) {
+        let uid = localStorage.getItem('userId'); 
+        console.log(uid);
+        //let {uid} = await firebaseAuth().currentUser; 
+        let docRef = await firebase.firestore().collection(`notes-${uid}`).doc(noteId);
+        docRef.get().then(doc => {
+            if (doc.exists) {
+                this.setState((state, props) => ({
+                    text: doc.data().text,
+                    title: doc.data().title,
+                    noteId: state.noteId
+                }));
+                console.log(doc.data());
+            } else {
+                console.log("No such document exists");
+            }
+        }).catch(err => {
+            console.log("Error getting document", err); 
+        })
+    }
+
+    async updateNote(title, text) {
+        try {
+        let uid = localStorage.getItem('userId');
+        console.log("Used id is ", uid);
+        console.log("Note id is ", this.state.noteId);
+        const noteRef = firebase.firestore().collection(`notes-${uid}`).doc(this.state.noteId); 
+
+        let updatedNote = {
+            text: text,
+            title: title
+        }
+
+        const res = await noteRef.update(updatedNote);
+        return res;
+        console.log(res);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    async queryDB(text) {
+        if (this.state.noteId === "" || this.state.noteId === null) {
+            await this.saveNote(this.state.title, text); 
+        } else {
+            await this.updateNote(this.state.title,text);
+        }
+    }
+
     async saveNote(title, text) {
         try {
             let newNote = {
@@ -94,9 +151,10 @@ class Create extends Component {
                 title: title
             }
             console.log("Uploading new note", newNote); 
-            let {uid} = await firebase.auth().currentUser; 
+            let uid = localStorage.getItem('userId')
             let noteAdded = await firebase.firestore().collection(`notes-${uid}`).add(newNote);
             console.log(noteAdded);
+            return noteAdded;
         } catch (error) {
             console.log(error);
         }
@@ -135,21 +193,59 @@ class Create extends Component {
                         txt+=(data.analyzeResult.readResults[0].lines[i].text);
                         txt+="\n\n";
                     }
-                    console.log(txt);
                     console.log(this.state.text); 
-                    this.setState((state, props) => ({text: state.text + txt}));
+                    this.setState((state, props) => ({
+                        text: state.text + txt,
+                        title: state.title,
+                        noteId: state.noteId
+                    }));
                 })
             })
             .catch((error)=> {
                 console.error('Error:', error); 
             }); 
     }
+    handleChange(event) {
+        event.persist();
+        console.log(event.target.value);
+        this.setState((state, props) => ({
+            text: state.text,
+            title: event.target.value,
+            noteId: state.noteId
+        }));
+      }
+    
+    handleUpload(text){
+        this.setState((state, props) => ({
+            text: text,
+            title: state.title,
+            noteId: state.noteId
+        }));
+        this.processImage();
+    }
 
     render() {
         const { classes } = this.props;
+        const textFieldStyle = {
+            paddingTop:"0.4%",
+            paddingBottom:"0.3%",
+            paddingLeft:"0.1%",
+            position:"relative",
+        }
         return(
             <React.Fragment>
-            <Editor saveNote={this.saveNote} text={this.state.text}/>
+            <div style={textFieldStyle}>
+                <TextField
+                error={false}
+                id="outlined-secondary"
+                label="Title"
+                variant="outlined"
+                color="secondary"
+                value={this.state.title}
+                onChange={this.handleChange}
+            />
+            </div>
+            <Editor queryDB={this.queryDB} handleUpload={this.handleUpload} text={this.state.text}/>
             <Button onClick={this.processImage}>Test</Button>
             </React.Fragment>
         )

@@ -86,8 +86,12 @@ class Home extends Component {
         })
     }
 
-    addNote() {
-        return customHist.push("/create");
+    addNote(id) {
+        if (!id) id = ""; 
+        return customHist.push({
+            pathname: "/create",
+            state: {noteId: {id}}
+        });
     }
 
     render() {
@@ -112,7 +116,7 @@ class Home extends Component {
                             </CardContent>
                     </CardActionArea>
                     <CardActions>
-                        <Button size="small" color="primary">
+                        <Button onClick={()=>{this.addNote(photo.id)}} size="small" color="primary">
                             Open
                         </Button>
                         <Button size="small" color="primary">

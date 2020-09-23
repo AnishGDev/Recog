@@ -17,7 +17,7 @@ import {
   isWidthUp,
 } from "@material-ui/core";
 
-const userId = ''; 
+const userId = 'userId'; 
 
 const styles = (theme) => ({
   extraLargeButtonLabel: {
