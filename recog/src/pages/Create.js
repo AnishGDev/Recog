@@ -1,4 +1,4 @@
-import { withStyles, Button, TextField } from '@material-ui/core';
+import { withStyles, Button, TextField, CircularProgress, Typography, Box} from '@material-ui/core';
 import PropTypes from "prop-types";
 import React, {Component, useState, useEffect} from 'react';
 import {VISION_API} from '../config/constants'
@@ -15,7 +15,7 @@ const styles =
     paddingTop: '0', // 16:9,
     marginTop:'10',
     maxWidth:"100%",
-    }
+    },
   };
 
 function Editor(props) {
@@ -33,6 +33,11 @@ function Editor(props) {
         paddingLeft:"0.1%",
         position:"relative",
     }
+
+    const uploadButton = {
+        display: 'none'
+    }
+    //props.handleUpload(value)
     return (
         <React.Fragment>
       <div className="container">
@@ -48,7 +53,16 @@ function Editor(props) {
         <Button onClick={() => {props.queryDB(value)}} variant="contained" size="large" color="primary">Save</Button>
     </div>
     <div style={style}>
-        <Button onClick={()=>{props.handleUpload(value)}} variant="contained" size="large" color="primary">Upload Scanned Image</Button>
+        <input
+            accept="image/*"
+            id="file-button"
+            type="file"
+            style={uploadButton}
+            onChange={(e)=>{if (e.target.files[0] !== null) props.handleUpload(value, e.target.files[0])}}
+        />
+        <label htmlFor="file-button">
+            <Button component="span" variant="contained" size="large" color="primary">Upload Scanned Image</Button>
+        </label>
     </div>
     </React.Fragment>
     );
@@ -68,7 +82,9 @@ class Create extends Component {
         this.state = {
             text: "",
             noteId: this.props.location.state.noteId.id,
-            title: ""
+            title: "",
+            progress: 0,
+            uploading: false
         };
     }
     
@@ -175,7 +191,7 @@ class Create extends Component {
                     'Content-Type': 'application/json',
                     'Ocp-Apim-Subscription-Key': VISION_API,
                 },
-                body: JSON.stringify({"url":'https://i.imgur.com/VPUtsj9.jpg'})
+                body: JSON.stringify({"url": imageURL})
             })
             .then(res => new Promise(resolve=> setTimeout(() => resolve(res), 5000)))
             .then(res =>{
@@ -195,7 +211,7 @@ class Create extends Component {
                     }
                     console.log(this.state.text); 
                     this.setState((state, props) => ({
-                        text: state.text + txt,
+                        text: state.text + "\n\n" + txt,
                         title: state.title,
                         noteId: state.noteId
                     }));
@@ -215,13 +231,31 @@ class Create extends Component {
         }));
       }
     
-    handleUpload(text){
+    handleUpload(text, image){
         this.setState((state, props) => ({
             text: text,
             title: state.title,
             noteId: state.noteId
         }));
-        this.processImage();
+        const uploadTask = firebase.storage().ref(`images/${image.name}`).put(image); 
+        this.setState({uploading: true});
+        uploadTask.on('state_changed', (snapshot)=> {
+            const progress = Math.round((snapshot.bytesTransferred/snapshot.totalBytes) * 100);
+            this.setState({progress}); 
+        }, (error)=> {
+            console.log("Error uploading to firebase ", error);
+            this.setState({uploading: false});
+        }, ()=> {
+            this.setState({uploading: false});
+            firebase.storage().ref('images').child(image.name).getDownloadURL().then((url) => {
+                const uid = localStorage.getItem('userId')
+                firebase.firestore().collection(`notes-${uid}`).doc(`${this.state.noteId}`).update({
+                    imgUrl: firebase.firestore.FieldValue.arrayUnion(url)
+                }); 
+                console.log("The URL is ", url); 
+                this.processImage(url);
+            })
+        })
     }
 
     render() {
@@ -245,8 +279,7 @@ class Create extends Component {
                 onChange={this.handleChange}
             />
             </div>
-            <Editor queryDB={this.queryDB} handleUpload={this.handleUpload} text={this.state.text}/>
-            <Button onClick={this.processImage}>Test</Button>
+            <Editor queryDB={this.queryDB} handleUpload={this.handleUpload} text={this.state.text} progress={100}/>
             </React.Fragment>
         )
     }

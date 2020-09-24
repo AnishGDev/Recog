@@ -80,7 +80,7 @@ class Home extends Component {
     handleLogOut() {
         signOut()
         .then(() => {
-            localStorage.removeItem(userId); 
+            localStorage.removeItem('userId'); 
             this.props.history.push("/login");
             console.log ("User logging out");
         })

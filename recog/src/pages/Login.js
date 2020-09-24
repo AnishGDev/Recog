@@ -125,7 +125,7 @@ function LoginComponent(props) {
                         <Typography
                           variant={isWidthUp("lg", width) ? "h3" : "h4"}
                         >
-                          Recog
+                          flumen
                         </Typography>
                       </Box>
                       <div>
