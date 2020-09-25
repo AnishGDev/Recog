@@ -31,11 +31,8 @@ It also is a fully functional markdown editor capable of creating lists, bullet 
 |   +-- header.html
 |   +-- serviceWorker.js
 +-- firebase.json
-|   +-- default.html
-|   +-- post.html
 +-- firestore.indexes.json
 +-- firestore.rules
-|   +-- members.yml
 +-- package.json
 +-- storage.rules
 ```
