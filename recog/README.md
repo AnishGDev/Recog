@@ -34,8 +34,6 @@ It also is a fully functional markdown editor capable of creating lists, bullet 
 |   +-- default.html
 |   +-- post.html
 +-- firestore.indexes.json
-|   +-- 2007-10-29-why-every-programmer-should-play-nethack.textile
-|   +-- 2009-04-26-barcamp-boston-4-roundup.textile
 +-- firestore.rules
 |   +-- members.yml
 +-- package.json
