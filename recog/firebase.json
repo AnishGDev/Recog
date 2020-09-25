@@ -5,6 +5,7 @@
   },
   "hosting": {
     "public": "build",
+    "site": "recogmd",
     "ignore": [
       "firebase.json",
       "**/.*",

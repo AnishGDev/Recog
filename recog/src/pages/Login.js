@@ -15,7 +15,44 @@ import {
   withStyles,
   withWidth,
   isWidthUp,
+  Backdrop,
+  CircularProgress
 } from "@material-ui/core";
+import CodeIcon from "@material-ui/icons/Code";
+import CloudIcon from "@material-ui/icons/Cloud";
+import MessageIcon from "@material-ui/icons/Message";
+
+const iconSize = 30;
+
+const features = [
+  {
+    color: "#0091EA",
+    headline: "Scan your notes",
+    text:
+      "Upload scanned images of your handwritten notes, and they will automatically be converted into text",
+    icon: <MessageIcon style={{ fontSize: iconSize }} />,
+    mdDelay: "400",
+    smDelay: "0"
+  },
+  {
+    color: "#304FFE",
+    headline: "Stored in cloud. Access from anywhere.",
+    text:
+      "All your notes are stored in cloud. You can edit and access them from anywhere.",
+    icon: <CloudIcon style={{ fontSize: iconSize }} />,
+    mdDelay: "0",
+    smDelay: "0"
+  },
+  {
+    color: "#C51162",
+    headline: "Write anything from code to equations.",
+    text:
+      "Uses a Markdown editor which allows you to write anything from KaTeX (web-based LaTeX) to code. Supports syntax highlighting for multiple languages",
+    icon: <CodeIcon style={{ fontSize: iconSize }} />,
+    mdDelay: "200",
+    smDelay: "200"
+  },
+];
 
 const userId = 'userId'; 
 
@@ -42,6 +79,8 @@ const styles = (theme) => ({
     boxShadow: theme.shadows[4],
     marginLeft: theme.spacing(2),
     marginRight: theme.spacing(2),
+    position:"relative",
+    left:"0%",
     [theme.breakpoints.up("xs")]: {
       paddingTop: theme.spacing(3),
       paddingBottom: theme.spacing(3),
@@ -101,6 +140,115 @@ const styles = (theme) => ({
   },
 });
 
+function calculateSpacing(width) {
+  if (isWidthUp("lg", width)) {
+    return 5;
+  }
+  if (isWidthUp("md", width)) {
+    return 4;
+  }
+  if (isWidthUp("sm", width)) {
+    return 3;
+  }
+  return 2;
+}
+function shadeColor(hex, percent) {
+  const f = parseInt(hex.slice(1), 16);
+
+  const t = percent < 0 ? 0 : 255;
+
+  const p = percent < 0 ? percent * -1 : percent;
+
+  const R = f >> 16;
+
+  const G = (f >> 8) & 0x00ff;
+
+  const B = f & 0x0000ff;
+  return `#${(
+    0x1000000 +
+    (Math.round((t - R) * p) + R) * 0x10000 +
+    (Math.round((t - G) * p) + G) * 0x100 +
+    (Math.round((t - B) * p) + B)
+  )
+    .toString(16)
+    .slice(1)}`;
+}
+function FeatureCard(props) {
+  const { classes, Icon, color, headline, text } = props;
+  return (
+    <Fragment>
+      <div
+        // We will set color and fill here, due to some prios complications
+        className={classes.iconWrapper}
+        style={{
+          color: color,
+          backgroundColor: shadeColor(color, 0.5),
+          fill: color
+        }}
+      >
+        {Icon}
+      </div>
+      <Typography variant="h5" paragraph>
+        {headline}
+      </Typography>
+      <Typography variant="body1" color="textSecondary">
+        {text}
+      </Typography>
+    </Fragment>
+  );
+}
+
+FeatureCard.propTypes = {
+  classes: PropTypes.object.isRequired,
+  Icon: PropTypes.element.isRequired,
+  color: PropTypes.string.isRequired,
+  headline: PropTypes.string.isRequired,
+  text: PropTypes.string.isRequired
+};
+
+const FeatureCardProp = withStyles(styles, { withTheme: true })(FeatureCard);
+
+function FeatureSection(props) {
+  const { width } = props;
+  return (
+    <div style={{ backgroundColor: "#FFFFFF" }}>
+      <div className="container-fluid lg-p-top">
+        <Typography variant="h3" align="center" className="lg-mg-bottom">
+          Features
+        </Typography>
+        <div className="container-fluid">
+          <Grid style={{margin: 0,width: '100%', paddingBottom:'3%'}} container spacing={calculateSpacing(width)}>
+            {features.map(element => (
+              <Grid
+                item
+                xs={6}
+                md={4}
+                data-aos="zoom-in-up"
+                data-aos-delay={
+                  isWidthUp("md", width) ? element.mdDelay : element.smDelay
+                }
+                key={element.headline}
+              >
+                <FeatureCardProp
+                  Icon={element.icon}
+                  color={element.color}
+                  headline={element.headline}
+                  text={element.text}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+FeatureSection.propTypes = {
+  width: PropTypes.string.isRequired
+};
+
+const FeatureSectionProp = withWidth()(FeatureSection);
 
 function LoginComponent(props) {
   const { classes, theme, width } = props;
@@ -108,7 +256,7 @@ function LoginComponent(props) {
     <Fragment>
       <div className={classNames("lg-p-top", classes.wrapper)}>
         <div className={classes.container}>
-          <Box display="flex" flexDirection="column" justifyContent="center" className="row" width="50%" padding-left= "25%">
+          <Box display="flex" flexDirection="column" paddingTop="25vh" paddingBottom="25vh" justifyContent="center" className="row" width="70%">
             <Card
               className={classes.card}
             >
@@ -125,7 +273,7 @@ function LoginComponent(props) {
                         <Typography
                           variant={isWidthUp("lg", width) ? "h3" : "h4"}
                         >
-                          flumen
+                          Recog
                         </Typography>
                       </Box>
                       <div>
@@ -134,7 +282,7 @@ function LoginComponent(props) {
                             variant={isWidthUp("lg", width) ? "h6" : "body1"}
                             color="textSecondary"
                           >
-                            Convert handwritten notes into text and search through them. 
+                            A cloud-based markdown editor capable of translating handwritten notes into text.
                           </Typography>
                         </Box>
                         <Button
@@ -160,7 +308,7 @@ function LoginComponent(props) {
           </Box>
         </div>
       </div>
-
+      <FeatureSectionProp/>
     </Fragment>
   );
 }
@@ -180,7 +328,6 @@ export default class Login extends Component {
 
     handleGoogleSignIn() {
         loginWithGoogle();
-
     }
 
     componentDidMount() {

@@ -16,7 +16,7 @@ const Main = () => {
   return (
     <Router history={customHist}>
       <Switch>
-        <Route path="/create" component={Create}/>
+        <Route path="/edit" component={Create}/>
         <Route path="/login" component={Login}/>
         <Route path="/app/home" component={Home}/>
         <Redirect from="/" to="/login"></Redirect>

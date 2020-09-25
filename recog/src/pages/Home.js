@@ -1,4 +1,4 @@
-import { AppBar, Fab, Toolbar, IconButton, Box, isWidthUp, Grid, Card, CardActionArea, CardMedia, CardContent, Button, withStyles, Typography } from '@material-ui/core';
+import { AppBar, Fab, Toolbar, IconButton, Box, isWidthUp, Grid, Card, CardActionArea, CardMedia, CardContent, Button, withStyles, Typography, TextareaAutosize } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import PropTypes from "prop-types";
 import CardActions from "@material-ui/core/CardActions"
@@ -7,6 +7,7 @@ import {signOut} from '../helpers/auth'
 import firebase from 'firebase'; 
 import {Redirect} from 'react-router-dom'
 import customHist from '../helpers/history'
+import SearchBar from "material-ui-search-bar";
 const userId = ""; 
 
 
@@ -27,12 +28,29 @@ const styles =
     },
     card: {
         maxWidth: 345,
+        paddingTop: '5%'
+    }, appBar: {
+        paddingBottom: '1%'
     },
     media: {
     paddingTop: '0', // 16:9,
     marginTop:'10',
     maxWidth:"100%",
-    }
+    },
+    searchBar: {
+        maxWidth: 500,
+        width: '25vw',
+        textAlign:'center',
+        left:"37.5vw",
+        top:'auto',
+        right:'50vw',
+        float:'left',
+        bottom:'auto',
+        position: "fixed",
+        display:'inline',
+        border:'1px solid #ddd',
+        borderRadius:'5px'
+    },
   };
 
 class Home extends Component {
@@ -40,9 +58,15 @@ class Home extends Component {
         super(props);
         this.handleLogOut = this.handleLogOut.bind(this);
         this.getInitialNotes = this.getInitialNotes.bind(this);
+        this.handleSearch = this.handleSearch.bind(this);
+        this.deleteNote = this.deleteNote.bind(this); 
         const Notes = []
+
         this.state = {
-            Notes
+            Notes,
+            value: "",
+            searchList: Notes,
+            empty: false
         };
     }
     
@@ -53,14 +77,23 @@ class Home extends Component {
     getInitialNotes() {
         firebase.auth().onAuthStateChanged(user=> {
             let uid = user.uid;
-
             if (user) {
                 firebase.firestore().collection(`notes-${uid}`).onSnapshot(snapshot => {
                     let allNotes = [];
                     snapshot.forEach(doc => {
+                        let imgUrl = ''; 
+                        console.log(doc.data());
                         var currNote = doc.data();
+                        console.log(currNote.imgUrl)
+                        if (currNote.imgUrl.length !== 0) {
+                            console.log(currNote.imgUrl)
+                            imgUrl = currNote.imgUrl[0]; 
+                        } else {
+                            console.log("UPDATING IMAGE")
+                            imgUrl = `https://i1.wp.com/itsfoss.com/wp-content/uploads/2015/03/desktop-wallpaper-ubuntu-vivid.jpg?ssl=1`
+                        }
                         currNote.id = doc.id;
-                        currNote.url = `https://i1.wp.com/itsfoss.com/wp-content/uploads/2015/03/desktop-wallpaper-ubuntu-vivid.jpg?ssl=1`
+                        currNote.url = imgUrl
                         allNotes.push(currNote); 
                     })
                     // sort alphabetically. 
@@ -70,8 +103,11 @@ class Home extends Component {
                     })
                     console.log ("Printing all the notes here"); 
                     console.log(allNotes);
-                    
-                    this.setState({Notes: allNotes});
+                    let empty = false;
+                    if (allNotes.length === 0) {
+                        empty = true;
+                    }
+                    this.setState({Notes: allNotes, searchList: allNotes, empty: empty});
                 })
             }
         })
@@ -87,16 +123,64 @@ class Home extends Component {
     }
 
     addNote(id) {
-        if (!id) id = ""; 
-        return customHist.push({
-            pathname: "/create",
+        console.log("note id is ", id);
+        if (!id) console.log("CREATING NEW NOTE. ");
+        customHist.push({
+            pathname: "/edit",
             state: {noteId: {id}}
         });
     }
 
+    deleteNote(id) {
+        let uid = localStorage.getItem('userId'); 
+        let currNotes = this.state.Notes;
+
+        currNotes.forEach((item, index, object) => {
+            if (item.id === id && uid!== null) {
+                console.log ("Found the item");
+                if (item.imgUrl !== undefined) {
+                    console.log(item.imgUrl);
+                    item.imgUrl.forEach(img => {
+                        firebase.storage().refFromURL(img).delete().then(()=> {
+                            console.log ('File successfully deleted');
+                        }).catch(err => {
+                            console.log("An error occurred while deleting files,", err); 
+                        })
+                    })
+                }
+                firebase.firestore().collection(`notes-${uid}`).doc(item.id).delete().then(()=> {
+                    console.log("Document successfully deleted");
+                    object.splice(index, 1); 
+                }).catch(err => {
+                    console.log("Error while deleting document", err); 
+                })
+            }
+        })
+    }
+    handleSearch(searchQuery) {
+        let currList = [];
+        let newList = [];
+        if (searchQuery !== "") {
+            console.log("Searching for ", searchQuery);
+            currList = this.state.Notes; 
+            newList = currList.filter(item => {
+                if (item.title !== null) {
+                    console.log("The item is ", item.title);
+                    const lc = item.title.toLowerCase();
+                    return lc.includes(searchQuery.toLowerCase()); 
+                } else {
+                    return false;
+                }
+            })
+        } else {
+            newList = this.state.Notes;
+        }
+        this.setState({searchList: newList}); 
+    }
+
     render() {
         const { classes } = this.props;
-        const allImages = this.state.Notes.map(photo => {
+        const allImages = this.state.searchList.map(photo => {
             return(
             <div style={{marginTop:20, padding:30}}>
             <Grid item key={photo.id}>
@@ -112,15 +196,15 @@ class Home extends Component {
                                 <Typography gutterBottom variant="h5" component="h2">
                                     {photo.title}
                                 </Typography>
-                                <Typography component="p">{photo.id}</Typography>
+                                <Typography component="p"></Typography>
                             </CardContent>
                     </CardActionArea>
                     <CardActions>
                         <Button onClick={()=>{this.addNote(photo.id)}} size="small" color="primary">
                             Open
                         </Button>
-                        <Button size="small" color="primary">
-                            Download
+                        <Button onClick={()=>{this.deleteNote(photo.id)}}size="small" color="secondary">
+                            Delete
                         </Button>
                     </CardActions>
                 </Card>
@@ -129,6 +213,7 @@ class Home extends Component {
         )})
         return (
             <React.Fragment>
+                <div className={classes.appBar}>
                 <AppBar position="sticky">
                 <Toolbar>
                     <Grid>
@@ -143,12 +228,42 @@ class Home extends Component {
                     </Grid>
                 </Toolbar>
                 </AppBar>
+                </div>
+                <div className={classes.searchBar}>
+                <SearchBar
+                value={this.state.value}
+                onChange={(newValue) => {this.setState({ value: newValue }); this.handleSearch(newValue)}}
+                onRequestSearch={() => {}}
+                />
+                </div>
                 <Grid container spacing={40} justify="center">
                     {allImages}
                 </Grid>
-                <Fab onClick={this.addNote} className={classes.fab} color="primary" aria-label="add">
+                <Fab onClick={()=> {this.addNote(null)}} className={classes.fab} color="primary" aria-label="add">
                     <AddIcon />
                 </Fab>
+                {this.state.empty && (<Grid
+                container
+                spacing={0}
+                direction="column"
+                alignItems="center"
+                justify="center"
+                style={{ minHeight: '100vh' }}
+                >
+                <Typography
+                        hide
+                        variant={"h6"}
+                        style={{textAlign:'center',
+                        paddingBottom:'10%',
+                        margin:'0',
+                        right:'auto',
+                        bottom:'auto',
+                        position: "fixed",}}
+                        >
+                          You have no notes. Add some by clicking the plus button
+                        </Typography>
+                        </Grid>
+                )}           
         </React.Fragment>
         )
     }
