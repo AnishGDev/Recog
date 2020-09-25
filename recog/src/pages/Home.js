@@ -10,7 +10,6 @@ import customHist from '../helpers/history'
 import SearchBar from "material-ui-search-bar";
 const userId = ""; 
 
-
 const styles = 
 {
     logoutButton: {

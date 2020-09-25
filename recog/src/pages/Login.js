@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import classNames from "classnames";
 import { loginWithGoogle } from '../helpers/auth';
 import firebase from 'firebase'; 
-import {firebaseAuth} from '../config/constants'
+import {firebaseAuth} from '../config/constants' // Stores keys and sensitive information.
 
 import {
   Grid,
@@ -22,39 +22,8 @@ import CodeIcon from "@material-ui/icons/Code";
 import CloudIcon from "@material-ui/icons/Cloud";
 import MessageIcon from "@material-ui/icons/Message";
 
+const userId = 'userId';  // key in local storage.
 const iconSize = 30;
-
-const features = [
-  {
-    color: "#0091EA",
-    headline: "Scan your notes",
-    text:
-      "Upload scanned images of your handwritten notes, and they will automatically be converted into text",
-    icon: <MessageIcon style={{ fontSize: iconSize }} />,
-    mdDelay: "400",
-    smDelay: "0"
-  },
-  {
-    color: "#304FFE",
-    headline: "Stored in cloud. Access from anywhere.",
-    text:
-      "All your notes are stored in cloud. You can edit and access them from anywhere.",
-    icon: <CloudIcon style={{ fontSize: iconSize }} />,
-    mdDelay: "0",
-    smDelay: "0"
-  },
-  {
-    color: "#C51162",
-    headline: "Write anything from code to equations.",
-    text:
-      "Uses a Markdown editor which allows you to write anything from KaTeX (web-based LaTeX) to code. Supports syntax highlighting for multiple languages",
-    icon: <CodeIcon style={{ fontSize: iconSize }} />,
-    mdDelay: "200",
-    smDelay: "200"
-  },
-];
-
-const userId = 'userId'; 
 
 const styles = (theme) => ({
   extraLargeButtonLabel: {
@@ -140,6 +109,30 @@ const styles = (theme) => ({
   },
 });
 
+const features = [
+  {
+    color: "#0091EA",
+    headline: "Scan your notes",
+    text:
+      "Upload scanned images of your handwritten notes, and they will automatically be converted into text",
+    icon: <MessageIcon style={{ fontSize: iconSize }} />,
+  },
+  {
+    color: "#304FFE",
+    headline: "Stored in cloud. Access from anywhere.",
+    text:
+      "All your notes are stored in cloud. You can edit and access them from anywhere.",
+    icon: <CloudIcon style={{ fontSize: iconSize }} />,
+  },
+  {
+    color: "#C51162",
+    headline: "Write anything from code to equations.",
+    text:
+      "Uses a Markdown editor which allows you to quickly format and edit a range of content, including code. Supports syntax highlighting for multiple languages",
+    icon: <CodeIcon style={{ fontSize: iconSize }} />,
+  },
+];
+
 function calculateSpacing(width) {
   if (isWidthUp("lg", width)) {
     return 5;
@@ -152,6 +145,8 @@ function calculateSpacing(width) {
   }
   return 2;
 }
+
+// Really nice shading function I found.
 function shadeColor(hex, percent) {
   const f = parseInt(hex.slice(1), 16);
 
@@ -173,12 +168,13 @@ function shadeColor(hex, percent) {
     .toString(16)
     .slice(1)}`;
 }
+
+// Feature cards
 function FeatureCard(props) {
   const { classes, Icon, color, headline, text } = props;
   return (
     <Fragment>
       <div
-        // We will set color and fill here, due to some prios complications
         className={classes.iconWrapper}
         style={{
           color: color,
@@ -191,13 +187,12 @@ function FeatureCard(props) {
       <Typography variant="h5" paragraph>
         {headline}
       </Typography>
-      <Typography variant="body1" color="textSecondary">
+      <Typography variant="body" color="textSecondary">
         {text}
       </Typography>
     </Fragment>
   );
 }
-
 FeatureCard.propTypes = {
   classes: PropTypes.object.isRequired,
   Icon: PropTypes.element.isRequired,
@@ -205,9 +200,9 @@ FeatureCard.propTypes = {
   headline: PropTypes.string.isRequired,
   text: PropTypes.string.isRequired
 };
-
 const FeatureCardProp = withStyles(styles, { withTheme: true })(FeatureCard);
 
+// Wraps all features and Feature Cards up
 function FeatureSection(props) {
   const { width } = props;
   return (
@@ -243,13 +238,13 @@ function FeatureSection(props) {
     </div>
   );
 }
-
 FeatureSection.propTypes = {
   width: PropTypes.string.isRequired
 };
-
 const FeatureSectionProp = withWidth()(FeatureSection);
 
+
+// Main Login Component. 
 function LoginComponent(props) {
   const { classes, theme, width } = props;
   return (
